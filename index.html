@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart History Education AI | Character Reference Video Studio</title>
+  <meta name="description" content="AI platform that converts spoken History lessons into content-accurate animated videos using uploaded character reference images, semantic NLP, and working player controls.">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand-container">
+        <div class="brand-logo-icon">
+          <i class="fa-solid fa-film"></i>
+        </div>
+        <div class="brand-text">
+          <h1>Smart History AI Studio</h1>
+          <span class="brand-tagline">Speech $\rightarrow$ Character Reference Images $\rightarrow$ Real Animated Video</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="badge-ai" id="pipelineStatusBadge">
+          <i class="fa-solid fa-microphone"></i> Ready to listen
+        </div>
+
+        <button id="themeToggleBtn" class="btn-icon" title="Toggle Light/Dark Theme">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Quick Sample Lessons Bar -->
+    <section class="preset-bar">
+      <div class="preset-title">
+        <i class="fa-solid fa-bolt"></i> Sample Spoken Lessons:
+      </div>
+      <div class="preset-pills" id="presetContainer"></div>
+    </section>
+
+    <!-- MAIN VIDEO WORKSPACE -->
+    <main class="main-video-layout">
+      
+      <!-- LARGE MAIN VIDEO PLAYER (HERO CENTERPIECE AT TOP) -->
+      <section class="video-player-hero-card">
+        <div class="video-screen-wrapper">
+          <!-- Canvas Render Stage -->
+          <canvas id="mainCanvas"></canvas>
+
+          <!-- REAL HTML5 VIDEO PLAYER -->
+          <video id="html5VideoPlayer" controls autoplay style="width:100%; height:100%; object-fit:contain; display:none; background:#000;"></video>
+
+          <!-- Real-Time Pipeline State Overlay HUD -->
+          <div id="aiProcessingOverlay" class="ai-processing-overlay">
+            <div class="ai-spinner"></div>
+            <div class="ai-step-title" id="aiStepTitle">Ready to listen</div>
+            <div class="ai-step-details" id="aiStepDetails">
+              <i class="fa-solid fa-brain"></i> Click microphone to speak, upload character images, then click 🎬 Generate Video
+            </div>
+            <div id="pipelineLogConsole" style="margin-top: 0.5rem; font-family: monospace; font-size: 0.75rem; color: var(--accent-gold); max-height: 80px; overflow-y: auto; text-align: left; width: 80%; background: rgba(0,0,0,0.5); padding: 0.5rem; border-radius: 6px;"></div>
+          </div>
+
+          <!-- Error Alert Container with Retry Button -->
+          <div id="errorAlertBox" style="display:none; position:absolute; top:20px; left:20px; right:20px; background:rgba(220,38,38,0.92); color:#fff; padding:1.25rem; border-radius:12px; font-family:monospace; white-space:pre-wrap; z-index:20;">
+            <div id="errorMessageContent"></div>
+            <button id="retryBtn" class="btn-gold" style="margin-top: 0.75rem; padding: 0.5rem 1rem;">
+              <i class="fa-solid fa-rotate-right"></i> Retry Generation
+            </button>
+          </div>
+        </div>
+
+        <!-- Working Video Control Bar -->
+        <div class="video-control-bar">
+          <div class="scrubber-container">
+            <span id="currentTimeDisplay" class="time-display">00:00</span>
+            <div class="progress-bar-wrapper" id="progressBarWrapper">
+              <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+            <span id="totalTimeDisplay" class="time-display">00:00</span>
+          </div>
+
+          <div class="controls-row">
+            <div class="left-controls">
+              <button id="playPauseBtn" class="control-btn play-main-btn" title="Play/Pause">
+                <i class="fa-solid fa-pause"></i>
+              </button>
+              <button id="restartBtn" class="control-btn" title="Restart Video">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+              <button id="subtitleToggleBtn" class="control-btn" title="Toggle Subtitles">
+                <i class="fa-solid fa-closed-captioning"></i>
+              </button>
+            </div>
+
+            <div class="right-controls">
+              <button id="fullscreenBtn" class="control-btn" title="Fullscreen">
+                <i class="fa-solid fa-expand"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CLEAN CONTROL SECTION BELOW PLAYER -->
+      <section class="speech-feed-card">
+        
+        <!-- Live Microphone Feed Box -->
+        <div class="mic-box" id="micBox">
+          <div class="mic-btn-group">
+            <button id="micBtn" class="mic-button" title="Click to Start Speaking">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+            <button id="micPauseBtn" class="btn-mic-secondary" title="Pause / Resume Recording">
+              <i class="fa-solid fa-pause"></i>
+            </button>
+          </div>
+          <div class="mic-info">
+            <div class="mic-status" id="micStatusText">Click microphone and speak your history lesson</div>
+            <span class="mic-hint"><i class="fa-solid fa-wand-magic-sparkles"></i> Speak lesson $\rightarrow$ upload character images $\rightarrow$ click 🎬 Generate Video</span>
+          </div>
+
+          <canvas id="waveformCanvas" width="220" height="35" style="border-radius: 6px; background: rgba(0,0,0,0.2);"></canvas>
+        </div>
+
+        <!-- Transcript Textarea -->
+        <div class="form-group">
+          <textarea id="transcriptTextarea" class="textarea-field" placeholder="Speak into your microphone — your spoken transcript will appear here. Upload character reference images below, then click 🎬 Generate Video..."></textarea>
+        </div>
+
+        <!-- CHARACTER CAST / REFERENCES UPLOAD SECTION -->
+        <div class="form-group" style="margin-top: 0.75rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <label class="form-label" style="font-size: 0.85rem; font-weight: 700; color: var(--text-gold); margin: 0;">
+              <i class="fa-solid fa-id-card"></i> Character Cast & References (Upload Images):
+            </label>
+            <button id="addCharacterBtn" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;">
+              <i class="fa-solid fa-plus"></i> + Add Character Reference Image
+            </button>
+            <input type="file" id="charFileInput" accept="image/*" style="display: none;">
+          </div>
+
+          <!-- Uploaded Character Reference Cards Grid -->
+          <div id="characterRefGrid" class="character-ref-grid"></div>
+        </div>
+
+        <!-- CHOOSE ANIMATION STYLE (4 CARDS) -->
+        <div class="form-group" style="margin-top: 0.75rem;">
+          <label class="form-label" style="font-size: 0.85rem; font-weight: 700; color: var(--text-gold);">
+            <i class="fa-solid fa-palette"></i> Choose Video Style:
+          </label>
+          <div class="style-cards-grid">
+            <button class="style-card active" data-style="3d_characters">
+              <i class="fa-solid fa-cube style-icon"></i>
+              <span class="style-title">🎭 Premium 3D Animation</span>
+            </button>
+
+            <button class="style-card" data-style="cinematic_characters">
+              <i class="fa-solid fa-film style-icon"></i>
+              <span class="style-title">🎬 Cinematic Historical</span>
+            </button>
+
+            <button class="style-card" data-style="anime_inspired">
+              <i class="fa-solid fa-wand-magic-sparkles style-icon"></i>
+              <span class="style-title">⚔️ Anime-Inspired</span>
+            </button>
+
+            <button class="style-card" data-style="realistic_animation">
+              <i class="fa-solid fa-landmark style-icon"></i>
+              <span class="style-title">📜 Realistic Historical</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- GENERATION SPEED & QUALITY PRESETS -->
+        <div class="form-group" style="margin-top: 0.75rem;">
+          <label class="form-label" style="font-size: 0.85rem; font-weight: 700; color: var(--text-gold);">
+            <i class="fa-solid fa-gauge-high"></i> Generation Speed & Quality:
+          </label>
+          <div class="preset-buttons-row">
+            <button class="mode-preset-btn active" data-preset="fast_preview">
+              <i class="fa-solid fa-bolt"></i> ⚡ Fast Preview (Default)
+            </button>
+            <button class="mode-preset-btn" data-preset="balanced">
+              <i class="fa-solid fa-sliders"></i> 🎬 Balanced
+            </button>
+            <button class="mode-preset-btn" data-preset="high_quality">
+              <i class="fa-solid fa-sparkles"></i> ✨ High Quality
+            </button>
+          </div>
+        </div>
+
+        <!-- PROMINENT GENERATE VIDEO BUTTON -->
+        <button id="generateVideoBtn" class="btn-gold" style="width: 100%; padding: 0.95rem 1.5rem; font-size: 1.1rem; justify-content: center; margin-top: 1rem; box-shadow: var(--shadow-gold);">
+          <i class="fa-solid fa-clapperboard"></i> 🎬 Generate Video
+        </button>
+
+      </section>
+
+      <!-- Export Toolbar -->
+      <div class="export-bar">
+        <input type="text" id="topicTitleInput" class="btn-icon" style="flex: 1; max-width: 320px; font-weight: 500;" value="August 14, 1947 Independence" placeholder="Lesson Title">
+        <button id="downloadScriptBtn" class="btn-secondary">
+          <i class="fa-solid fa-file-arrow-down"></i> Export Script
+        </button>
+        <button id="exportVideoBtn" class="btn-gold">
+          <i class="fa-solid fa-download"></i> Download Video (.webm)
+        </button>
+      </div>
+
+      <!-- Secondary Info Panels -->
+      <section class="secondary-grid">
+        <div class="info-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Sentence-by-Sentence Scene Prompts</h3>
+            <span class="badge-ai" style="font-size: 0.75rem;">Semantic NLP Verified</span>
+          </div>
+          <div id="storyboardGrid" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+        </div>
+
+        <div class="info-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-users-gear"></i> Persistent Character Bible</h3>
+            <span class="badge-ai" style="font-size: 0.75rem;">Character Registry</span>
+          </div>
+          <div id="characterRosterGrid" style="display: flex; flex-wrap: wrap; gap: 0.75rem;"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>Smart History Education AI • Character Reference Video Platform</div>
+      <div>Backend API: http://localhost:3000 • 100% Connected</div>
+    </footer>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+  <script type="module" src="/src/js/app.js"></script>
+</body>
+</html>
