@@ -13,11 +13,17 @@ export class VideoCompiler {
   /**
    * Compiles scene prompts and physical assets into a playable video file on disk.
    */
-  static async compileVideo(jobId, transcript, scenes = [], style = 'cinematic') {
+  static async compileVideo(jobId, transcript, scenes = [], style = 'cinematic', referenceImages = [], characterReferences = []) {
     const publicVideosDir = path.join(__dirname, 'public', 'videos');
     if (!fs.existsSync(publicVideosDir)) {
       fs.mkdirSync(publicVideosDir, { recursive: true });
     }
+
+    console.log(`[VideoCompiler] Compiling Job ${jobId} with ${scenes.length} scenes and ${referenceImages.length} reference images.`);
+
+    characterReferences.forEach(char => {
+      console.log(`[VideoCompiler] Binding Character Identity: ${char.name} (${char.role}) -> CharacterType: ${char.characterType || 'human'}, VisualReferenceRequired: ${char.visualReferenceRequired}`);
+    });
 
     const filename = `generated_video_${jobId}.webm`;
     const outputPath = path.join(publicVideosDir, filename);

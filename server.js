@@ -15,7 +15,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve generated video files statically
 app.use('/videos', express.static(path.join(__dirname, 'public', 'videos')));
@@ -29,7 +30,7 @@ const videoJobs = new Map();
  */
 app.post('/api/generate-video', async (req, res) => {
   try {
-    const { transcript, topicTitle, style, is4K } = req.body;
+    const { transcript, topicTitle, style, reference_images, characterReferences, scenes, aspect_ratio } = req.body;
 
     if (!transcript || transcript.trim() === '') {
       return res.status(400).json({ error: 'Transcript is required for video generation.' });
@@ -43,6 +44,10 @@ app.post('/api/generate-video', async (req, res) => {
       transcript,
       topicTitle: topicTitle || 'Spoken History Lesson',
       style: style || 'cinematic',
+      aspect_ratio: aspect_ratio || '16:9',
+      referenceImagesCount: (reference_images || []).length,
+      characterReferencesCount: (characterReferences || []).length,
+      scenesCount: (scenes || []).length,
       status: 'analyzing',
       progress: 15,
       createdAt: new Date().toISOString()
@@ -50,14 +55,15 @@ app.post('/api/generate-video', async (req, res) => {
 
     console.log(`[API Server] Created Video Job: ${jobId}`);
     console.log(`[API Server] Spoken Transcript: "${transcript}"`);
+    console.log(`[API Server] Attached Character Reference Images: ${(reference_images || []).length}`);
 
     // Async video compilation pipeline
     setTimeout(async () => {
       try {
         const job = videoJobs.get(jobId);
-        if (job) job.status = 'compiling_scenes'; job.progress = 50;
+        if (job) { job.status = 'compiling_scenes'; job.progress = 50; }
 
-        const result = await VideoCompiler.compileVideo(jobId, transcript, [], style);
+        const result = await VideoCompiler.compileVideo(jobId, transcript, scenes || [], style, reference_images || [], characterReferences || []);
 
         job.status = 'completed';
         job.progress = 100;
@@ -70,7 +76,7 @@ app.post('/api/generate-video', async (req, res) => {
         const job = videoJobs.get(jobId);
         if (job) { job.status = 'failed'; job.error = err.message; }
       }
-    }, 1500);
+    }, 1200);
 
     return res.status(202).json({
       success: true,
